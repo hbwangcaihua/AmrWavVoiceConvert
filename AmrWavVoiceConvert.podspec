@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
   s.name         = "AmrWavVoiceConvert"
   s.version      = "1.0.4"
   s.summary      = "iOS音频文件转换"
-  s.homepage     = "https://github.com/hbwangcaihua/YSBaseFramework"
+  s.homepage     = "https://github.com/hbwangcaihua/AmrWavVoiceConvert"
   # s.screenshots  = "www.example.com/screenshots_1.gif", "www.example.com/screenshots_2.gif"
 
 
@@ -39,7 +39,7 @@ Pod::Spec.new do |s|
 
 
   # ――― Source Location ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
-  s.source       = { :git => "https://github.com/hbwangcaihua/YSBaseFramework.git",:tag => s.version.to_s}
+  s.source       = { :git => "https://github.com/hbwangcaihua/AmrWavVoiceConvert.git",:tag => s.version.to_s}
 
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
