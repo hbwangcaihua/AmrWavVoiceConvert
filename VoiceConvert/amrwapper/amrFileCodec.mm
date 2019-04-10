@@ -7,36 +7,36 @@
 //
 
 #include "amrFileCodec.h"
-int amrEncodeMode[] = {4750, 5150, 5900, 6700, 7400, 7950, 10200, 12200}; // amr 编码方式
+static int amrEncodeMode[] = {4750, 5150, 5900, 6700, 7400, 7950, 10200, 12200}; // amr 编码方式
 // 从WAVE文件中跳过WAVE文件头，直接到PCM音频数据
-void SkipToPCMAudioData(FILE* fpwave)
+static void SkipToPCMAudioData(FILE* fpwave)
 {
-	RIFFHEADER riff;
-	FMTBLOCK fmt;
-	XCHUNKHEADER chunk;
-	WAVEFORMATX wfx;
+	EM_RIFFHEADER riff;
+	EM_FMTBLOCK fmt;
+	EM_XCHUNKHEADER chunk;
+	EM_WAVEFORMATX wfx;
 	int bDataBlock = 0;
 	
 	// 1. 读RIFF头
-	fread(&riff, 1, sizeof(RIFFHEADER), fpwave);
+	fread(&riff, 1, sizeof(EM_RIFFHEADER), fpwave);
 	
 	// 2. 读FMT块 - 如果 fmt.nFmtSize>16 说明需要还有一个附属大小没有读
-	fread(&chunk, 1, sizeof(XCHUNKHEADER), fpwave);
+	fread(&chunk, 1, sizeof(EM_XCHUNKHEADER), fpwave);
 	if ( chunk.nChunkSize>16 )
 	{
-		fread(&wfx, 1, sizeof(WAVEFORMATX), fpwave);
+		fread(&wfx, 1, sizeof(EM_WAVEFORMATX), fpwave);
 	}
 	else
 	{
 		memcpy(fmt.chFmtID, chunk.chChunkID, 4);
 		fmt.nFmtSize = chunk.nChunkSize;
-		fread(&fmt.wf, 1, sizeof(WAVEFORMAT), fpwave);
+		fread(&fmt.wf, 1, sizeof(EM_WAVEFORMAT), fpwave);
 	}
 	
 	// 3.转到data块 - 有些还有fact块等。
 	while(!bDataBlock)
 	{
-		fread(&chunk, 1, sizeof(XCHUNKHEADER), fpwave);
+		fread(&chunk, 1, sizeof(EM_XCHUNKHEADER), fpwave);
 		if ( !memcmp(chunk.chChunkID, "data", 4) )
 		{
 			bDataBlock = 1;
@@ -49,9 +49,9 @@ void SkipToPCMAudioData(FILE* fpwave)
 
 // 从WAVE文件读一个完整的PCM音频帧
 // 返回值: 0-错误 >0: 完整帧大小
-int ReadPCMFrame(short speech[], FILE* fpwave, int nChannels, int nBitsPerSample)
+static size_t ReadPCMFrame(short speech[], FILE* fpwave, int nChannels, int nBitsPerSample)
 {
-	int nRead = 0;
+	size_t nRead = 0;
 	int x = 0, y=0;
 //	unsigned short ush1=0, ush2=0, ush=0;
 	
@@ -63,9 +63,7 @@ int ReadPCMFrame(short speech[], FILE* fpwave, int nChannels, int nBitsPerSample
 	
 	if (nBitsPerSample==8 && nChannels==1)
 	{
-
 		nRead = fread(pcmFrame_8b1, (nBitsPerSample/8), PCM_FRAME_SIZE*nChannels, fpwave);
-
 		for(x=0; x<PCM_FRAME_SIZE; x++)
 		{
 			speech[x] =(short)((short)pcmFrame_8b1[x] << 7);
@@ -121,7 +119,7 @@ int ReadPCMFrame(short speech[], FILE* fpwave, int nChannels, int nBitsPerSample
 // bps决定样本(sample)大小
 // bps = 8 --> 8位 unsigned char
 //       16 --> 16位 unsigned short
-int EncodeWAVEFileToAMRFile(const char* pchWAVEFilename, const char* pchAMRFileName, int nChannels, int nBitsPerSample)
+int EM_EncodeWAVEFileToAMRFile(const char* pchWAVEFilename, const char* pchAMRFileName, int nChannels, int nBitsPerSample)
 {
 	FILE* fpwave;
 	FILE* fpamr;
@@ -130,7 +128,8 @@ int EncodeWAVEFileToAMRFile(const char* pchWAVEFilename, const char* pchAMRFileN
 	short speech[160];
 	
 	/* counters */
-	int byte_counter, frames = 0, bytes = 0;
+	int byte_counter, frames = 0;
+    size_t bytes = 0;
 	
 	/* pointer to encoder state structure */
 	void *enstate;
@@ -190,53 +189,53 @@ int EncodeWAVEFileToAMRFile(const char* pchWAVEFilename, const char* pchAMRFileN
 
 #pragma mark - Decode
 //decode
-void WriteWAVEFileHeader(FILE* fpwave, int nFrame)
+static void WriteWAVEFileHeader(FILE* fpwave, int nFrame)
 {
 	char tag[10] = "";
 	
 	// 1. 写RIFF头
-	RIFFHEADER riff;
+	EM_RIFFHEADER riff;
 	strcpy(tag, "RIFF");
 	memcpy(riff.chRiffID, tag, 4);
 	riff.nRiffSize = 4                                     // WAVE
-	+ sizeof(XCHUNKHEADER)               // fmt 
-	+ sizeof(WAVEFORMATX)           // WAVEFORMATX
-	+ sizeof(XCHUNKHEADER)               // DATA
+	+ sizeof(EM_XCHUNKHEADER)               // fmt 
+	+ sizeof(EM_WAVEFORMATX)           // EM_WAVEFORMATX
+	+ sizeof(EM_XCHUNKHEADER)               // DATA
 	+ nFrame*160*sizeof(short);    //
 	strcpy(tag, "WAVE");
 	memcpy(riff.chRiffFormat, tag, 4);
-	fwrite(&riff, 1, sizeof(RIFFHEADER), fpwave);
+	fwrite(&riff, 1, sizeof(EM_RIFFHEADER), fpwave);
 	
 	// 2. 写FMT块
-	XCHUNKHEADER chunk;
-	WAVEFORMATX wfx;
+	EM_XCHUNKHEADER chunk;
+	EM_WAVEFORMATX wfx;
 	strcpy(tag, "fmt ");
 	memcpy(chunk.chChunkID, tag, 4);
-	chunk.nChunkSize = sizeof(WAVEFORMATX);
-	fwrite(&chunk, 1, sizeof(XCHUNKHEADER), fpwave);
-	memset(&wfx, 0, sizeof(WAVEFORMATX));
+	chunk.nChunkSize = sizeof(EM_WAVEFORMATX);
+	fwrite(&chunk, 1, sizeof(EM_XCHUNKHEADER), fpwave);
+	memset(&wfx, 0, sizeof(EM_WAVEFORMATX));
 	wfx.nFormatTag = 1;
 	wfx.nChannels = 1; // 单声道
 	wfx.nSamplesPerSec = 8000; // 8khz
 	wfx.nAvgBytesPerSec = 16000;
 	wfx.nBlockAlign = 2;
 	wfx.nBitsPerSample = 16; // 16位
-	fwrite(&wfx, 1, sizeof(WAVEFORMATX), fpwave);
+	fwrite(&wfx, 1, sizeof(EM_WAVEFORMATX), fpwave);
 	
 	// 3. 写data块头
 	strcpy(tag, "data");
 	memcpy(chunk.chChunkID, tag, 4);
 	chunk.nChunkSize = nFrame*160*sizeof(short);
-	fwrite(&chunk, 1, sizeof(XCHUNKHEADER), fpwave);
+	fwrite(&chunk, 1, sizeof(EM_XCHUNKHEADER), fpwave);
 }
 
-const int myround(const double x)
+static const int myround(const double x)
 {
 	return((int)(x+0.5));
 } 
 
 // 根据帧头计算当前帧大小
-int caclAMRFrameSize(unsigned char frameHeader)
+static int caclAMRFrameSize(unsigned char frameHeader)
 {
 	int mode;
 	int temp1 = 0;
@@ -261,13 +260,9 @@ int caclAMRFrameSize(unsigned char frameHeader)
 
 // 读第一个帧 - (参考帧)
 // 返回值: 0-出错; 1-正确
-int ReadAMRFrameFirst(FILE* fpamr, unsigned char frameBuffer[], int* stdFrameSize, unsigned char* stdFrameHeader)
+static int ReadAMRFrameFirst(FILE* fpamr, unsigned char frameBuffer[], int* stdFrameSize, unsigned char* stdFrameHeader)
 {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wsizeof-array-argument"
-#pragma clang diagnostic ignored "-Wsizeof-pointer-memaccess"
-	memset(frameBuffer, 0, sizeof(frameBuffer));
-#pragma clang diagnostic pop
+	//memset(frameBuffer, 0, sizeof(frameBuffer));
 	
 	// 先读帧头
 	fread(stdFrameHeader, 1, sizeof(unsigned char), fpamr);
@@ -285,15 +280,12 @@ int ReadAMRFrameFirst(FILE* fpamr, unsigned char frameBuffer[], int* stdFrameSiz
 }
 
 // 返回值: 0-出错; 1-正确
-int ReadAMRFrame(FILE* fpamr, unsigned char frameBuffer[], int stdFrameSize, unsigned char stdFrameHeader)
+static int ReadAMRFrame(FILE* fpamr, unsigned char frameBuffer[], int stdFrameSize, unsigned char stdFrameHeader)
 {
-	int bytes = 0;
+	size_t bytes = 0;
 	unsigned char frameHeader; // 帧头
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wsizeof-array-argument"
-#pragma clang diagnostic ignored "-Wsizeof-pointer-memaccess"
-	memset(frameBuffer, 0, sizeof(frameBuffer));
-#pragma clang diagnostic pop
+	
+	//memset(frameBuffer, 0, sizeof(frameBuffer));
 	
 	// 读帧头
 	// 如果是坏帧(不是标准帧头)，则继续读下一个字节，直到读到标准帧头
@@ -313,7 +305,7 @@ int ReadAMRFrame(FILE* fpamr, unsigned char frameBuffer[], int stdFrameSize, uns
 }
 
 // 将AMR文件解码成WAVE文件
-int DecodeAMRFileToWAVEFile(const char* pchAMRFileName, const char* pchWAVEFilename)
+int EM_DecodeAMRFileToWAVEFile(const char* pchAMRFileName, const char* pchWAVEFilename)
 {
 
     
@@ -328,8 +320,6 @@ int DecodeAMRFileToWAVEFile(const char* pchAMRFileName, const char* pchWAVEFilen
 	unsigned char amrFrame[MAX_AMR_FRAME_SIZE];
 	short pcmFrame[PCM_FRAME_SIZE];
 	
-//	NSString * path = [[NSBundle mainBundle] pathForResource:  @"test" ofType: @"amr"]; 
-//	fpamr = fopen([path cStringUsingEncoding:NSASCIIStringEncoding], "rb");
     fpamr = fopen(pchAMRFileName, "rb");
     
 	if ( fpamr==NULL ) return 0;
@@ -357,8 +347,8 @@ int DecodeAMRFileToWAVEFile(const char* pchAMRFileName, const char* pchWAVEFilen
 	destate = Decoder_Interface_init();
 	
 	// 读第一帧 - 作为参考帧
-	memset(amrFrame, 0, sizeof(amrFrame));
-	memset(pcmFrame, 0, sizeof(pcmFrame));
+	memset(amrFrame, 0, MAX_AMR_FRAME_SIZE);
+	memset(pcmFrame, 0, PCM_FRAME_SIZE);
 	ReadAMRFrameFirst(fpamr, amrFrame, &stdFrameSize, &stdFrameHeader);
 	
 	// 解码一个AMR音频帧成PCM数据
@@ -369,8 +359,8 @@ int DecodeAMRFileToWAVEFile(const char* pchAMRFileName, const char* pchWAVEFilen
 	// 逐帧解码AMR并写到WAVE文件里
 	while(1)
 	{
-		memset(amrFrame, 0, sizeof(amrFrame));
-		memset(pcmFrame, 0, sizeof(pcmFrame));
+		memset(amrFrame, 0, MAX_AMR_FRAME_SIZE);
+		memset(pcmFrame, 0, PCM_FRAME_SIZE);
 		if (!ReadAMRFrame(fpamr, amrFrame, stdFrameSize, stdFrameHeader)) break;
 		
 		// 解码一个AMR音频帧成PCM数据 (8k-16b-单声道)
@@ -378,7 +368,7 @@ int DecodeAMRFileToWAVEFile(const char* pchAMRFileName, const char* pchWAVEFilen
 		nFrameCount++;
 		fwrite(pcmFrame, sizeof(short), PCM_FRAME_SIZE, fpwave);
 	}
-    printf("frame = %d\n", nFrameCount);
+	//NSLog(@"frame = %d", nFrameCount);
 	Decoder_Interface_exit(destate);
 	
 	fclose(fpwave);
@@ -390,4 +380,35 @@ int DecodeAMRFileToWAVEFile(const char* pchAMRFileName, const char* pchWAVEFilen
 	fclose(fpwave);
 	
 	return nFrameCount;
+}
+
+int isMP3File(const char *filePath){
+    FILE* fpamr = NULL;
+    char magic[8];
+    fpamr = fopen(filePath, "rb");
+    if (fpamr==NULL) return 0;
+    int isMp3 = 0;
+    fread(magic, sizeof(char), strlen(MP3_MAGIC_NUMBER), fpamr);
+    if (!strncmp(magic, MP3_MAGIC_NUMBER, strlen(MP3_MAGIC_NUMBER)))
+    {
+        isMp3 = 1;
+    }
+    fclose(fpamr);
+    return isMp3;
+}
+
+
+int isAMRFile(const char *filePath){
+    FILE* fpamr = NULL;
+    char magic[8];
+    fpamr = fopen(filePath, "rb");
+    if (fpamr==NULL) return 0;
+    int isAmr = 0;
+    fread(magic, sizeof(char), strlen(AMR_MAGIC_NUMBER), fpamr);
+    if (!strncmp(magic, AMR_MAGIC_NUMBER, strlen(AMR_MAGIC_NUMBER)))
+    {
+        isAmr = 1;
+    }
+    fclose(fpamr);
+    return isAmr;
 }
