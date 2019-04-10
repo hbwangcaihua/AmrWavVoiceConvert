@@ -43,9 +43,9 @@ Pod::Spec.new do |s|
 
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
-  s.subspec 'AmrWavVoiceConvert' do |AmrWavVoiceConvert|
-      AmrWavVoiceConvert.source_files = 'AmrWavVoiceConvert/VoiceConvert/**/*'
-      AmrWavVoiceConvert.public_header_files = 'AmrWavVoiceConvert/VoiceConvert/**/*.h'
+  s.subspec 'AmrWavVoiceConvert' do |voiceConvert|
+      voiceConvert.source_files = 'AmrWavVoiceConvert/**/*'
+      voiceConvert.public_header_files = 'AmrWavVoiceConvert/**/*.h'
   end
 
   s.subspec 'amrwapper' do |amrwapper|
