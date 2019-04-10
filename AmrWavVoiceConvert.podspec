@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   #
 
   s.name         = "AmrWavVoiceConvert"
-  s.version      = "1.0.1"
+  s.version      = "1.0.2"
   s.summary      = "iOS音频文件转换"
   s.homepage     = "https://github.com/hbwangcaihua/AmrWavVoiceConvert"
   # s.screenshots  = "www.example.com/screenshots_1.gif", "www.example.com/screenshots_2.gif"
@@ -44,8 +44,8 @@ Pod::Spec.new do |s|
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   s.subspec 'AmrWavVoiceConvert' do |voiceConvert|
-      voiceConvert.source_files = 'AmrWavVoiceConvert/**/*'
-      voiceConvert.public_header_files = 'AmrWavVoiceConvert/**/*.h'
+      voiceConvert.source_files = 'AmrWavVoiceConvert/VoiceConvert/**/*'
+      voiceConvert.public_header_files = 'AmrWavVoiceConvert/VoiceConvert/**/*.h'
   end
 
   s.subspec 'amrwapper' do |amrwapper|
@@ -65,8 +65,8 @@ Pod::Spec.new do |s|
 
   # ――― Project Linking ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   s.frameworks = "Foundation"
-  s.vendored_libraries = ['AmrWavVoiceConvert/lib/libopencore-amrnb.a',
-                          'AmrWavVoiceConvert/lib/libopencore-amrwb.a']
+  s.vendored_libraries = ['AmrWavVoiceConvert/opencore-amrnb/libopencore-amrnb.a',
+                          'AmrWavVoiceConvert/opencore-amrwb/libopencore-amrwb.a']
 
 
   # ――― Project Settings ――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
